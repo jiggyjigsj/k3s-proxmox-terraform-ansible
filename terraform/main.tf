@@ -7,6 +7,20 @@ resource "proxmox_vm_qemu" "proxmox_vm_master" {
   agent       = 1
   memory      = var.num_k3s_masters_mem
   cores       = 4
+  boot        = "cdn"
+  full_clone  = true
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+  hotplug  = 0
+
+  disk {
+    slot    = 0
+    size    = "16G"
+    type    = "scsi"
+    storage = "local-data"
+    #iothread = 1
+  }
 
   ipconfig0 = "ip=${var.master_ips[count.index]}/${var.networkrange},gw=${var.gateway}"
 
@@ -30,6 +44,20 @@ resource "proxmox_vm_qemu" "proxmox_vm_workers" {
   agent       = 1
   memory      = var.num_k3s_nodes_mem
   cores       = 4
+  boot        = "cdn"
+  full_clone  = true
+
+  scsihw   = "virtio-scsi-pci"
+  bootdisk = "scsi0"
+  hotplug  = 0
+
+  disk {
+    slot    = 0
+    size    = "16G"
+    type    = "scsi"
+    storage = "local-data"
+    #iothread = 1
+  }
 
   ipconfig0 = "ip=${var.worker_ips[count.index]}/${var.networkrange},gw=${var.gateway}"
 
@@ -47,8 +75,8 @@ resource "proxmox_vm_qemu" "proxmox_vm_workers" {
 data "template_file" "k8s" {
   template = file("./templates/k8s.tpl")
   vars = {
-    k3s_master_ip = "${join("\n", [for instance in proxmox_vm_qemu.proxmox_vm_master : join("", [instance.default_ipv4_address, " ansible_ssh_private_key_file=", var.pvt_key])])}"
-    k3s_node_ip   = "${join("\n", [for instance in proxmox_vm_qemu.proxmox_vm_workers : join("", [instance.default_ipv4_address, " ansible_ssh_private_key_file=", var.pvt_key])])}"
+    k3s_master_ip = join("\n", [for instance in proxmox_vm_qemu.proxmox_vm_master : join("", [instance.default_ipv4_address, " ansible_ssh_private_key_file=", var.pvt_key])])
+    k3s_node_ip   = join("\n", [for instance in proxmox_vm_qemu.proxmox_vm_workers : join("", [instance.default_ipv4_address, " ansible_ssh_private_key_file=", var.pvt_key])])
   }
 }
 
